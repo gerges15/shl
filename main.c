@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <string.h>
 void lsh_loop(void);
+void lsh_error_msg(void);
 int  lsh_cd(char **args);
 int lsh_help(char **args);
 int lsh_exit(char **args);
@@ -147,8 +148,7 @@ char *lsh_read_line(void) {
       bufsize += LSH_RL_BUFSIZE;
       buffer = realloc(buffer, bufsize);
       if (!buffer) {
-        fprintf(stderr, "lsh: allocatino error\n");
-        exit(EXIT_FAILURE);
+        lsh_error_msg();
       }
     }
   }
@@ -175,4 +175,9 @@ void lsh_loop(void)
     free(line);
     free(args);
   } while (status);
+}
+
+void lsh_error_msg(void) {
+  fprintf(stderr, "lsh: allocation error\n");
+  exit(EXIT_FAILURE);
 }
