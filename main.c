@@ -3,6 +3,7 @@
 #include <sys/wait.h>
 #include <stdio.h>
 #include <string.h>
+void lsh_loop(void);
 int  lsh_cd(char **args);
 int lsh_help(char **args);
 int lsh_exit(char **args);
@@ -154,6 +155,11 @@ char *lsh_read_line(void) {
 }
 
 
+int main() {
+  lsh_loop();
+  return EXIT_SUCCESS;
+}
+
 void lsh_loop(void)
 {
   char *line;
@@ -170,9 +176,3 @@ void lsh_loop(void)
     free(args);
   } while (status);
 }
-
-int main() {
-  lsh_loop();
-  return EXIT_SUCCESS;
-}
-
