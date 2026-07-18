@@ -1,29 +1,21 @@
-#include <stdlib.h>
-#include <unistd.h>
-#include <sys/wait.h>
+#include <stdbool.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
+#include <sys/wait.h>
+#include <unistd.h>
 void lsh_loop(void);
 void lsh_error_msg(void);
-int  lsh_cd(char **args);
+void lsh_print_builtins(void);
+int lsh_cd(char **args);
 int lsh_help(char **args);
 int lsh_exit(char **args);
 
-char *builtin_str[] = {
-  "cd",
-  "help",
-  "exit"
-};
+char *builtin_str[] = {"cd", "help", "exit"};
 
-int(*builtin_func[]) (char **) = {
-  &lsh_cd,
-  &lsh_help,
-  &lsh_exit
-};
+int (*builtin_func[])(char **) = {&lsh_cd, &lsh_help, &lsh_exit};
 
-int lsh_num_builtins() {
-  return sizeof(builtin_str) / sizeof(char *);
-}
+int lsh_num_builtins() { return sizeof(builtin_str) / sizeof(char *); }
 
 int lsh_cd(char **args) {
   if (args[1] == NULL) {
@@ -37,33 +29,38 @@ int lsh_cd(char **args) {
 }
 
 int lsh_help(char **args) {
-  int i;
   printf("Gerges Samy's LSH\n");
   printf("Type program names and arguments, and hit enter.\n");
   printf("The following are built in:\n");
-
-  for (i = 0; i < lsh_num_builtins(); i++) {
-    printf("%s\n", builtin_str[i]);
-  }
+  lsh_print_builtins();
   printf("Use the man command for informatino on other programs.\n");
   return 1;
 }
 
-int lsh_exit(char **args) {
-  return 0;
+void lsh_print_builtins(void) {
+  int i;
+  for (i = 0; i < lsh_num_builtins(); i++) {
+    printf("%s\n", builtin_str[i]);
+  }
 }
+
+int lsh_exit(char **args) { return 0; }
 
 int lsh_launch(char **args) {
   pid_t pid, wpid;
   int status;
-
   pid = fork();
-  if (pid == 0) {
-    if (execvp(args[0], args) == -1) {
-      perror("lsh");
-    }
-    exit (EXIT_FAILURE);
-  } else if (pid < 0) {
+  bool is_pid = pid == 0;
+
+  if (is_pid && execvp(args[0], args) == -1) {
+    perror("lsh");
+  }
+
+  if (is_pid) {
+    exit(EXIT_FAILURE);
+  }
+
+  if (pid < 0) {
     perror("lsh");
   } else {
     do {
@@ -82,7 +79,7 @@ int lsh_execute(char **args) {
 
   for (i = 0; i < lsh_num_builtins(); i++) {
     if (strcmp(args[0], builtin_str[i]) == 0) {
-      return (*builtin_func[i]) (args);
+      return (*builtin_func[i])(args);
     }
   }
   return lsh_launch(args);
@@ -92,27 +89,23 @@ int lsh_execute(char **args) {
 #define LSH_TOK_DELIM " \t\r\n\a"
 char **lsh_split_line(char *line) {
   int buffsize = LSH_TOK_BUFSIZE, position = 0;
-  char **tokens = malloc(buffsize * sizeof(char*));
+  char **tokens = malloc(buffsize * sizeof(char *));
   char *token;
 
-  if(!tokens){
-    fprintf(stderr, "lsh: allocation error\n");
-    exit(EXIT_FAILURE);
-  }
+  if (!tokens)
+    lsh_error_msg();
 
   token = strtok(line, LSH_TOK_DELIM);
-  while ( token != NULL) {
+  while (token != NULL) {
     tokens[position] = token;
     position++;
 
     if (position >= buffsize) {
       buffsize += LSH_TOK_BUFSIZE;
-      tokens = realloc(tokens, buffsize * sizeof(char*));
+      tokens = realloc(tokens, buffsize * sizeof(char *));
 
-      if (!tokens) {
-        fprintf(stderr, "lsh: allocation error\n");
-        exit(EXIT_FAILURE);
-      }
+      if (!tokens)
+        lsh_error_msg();
     }
     token = strtok(NULL, LSH_TOK_DELIM);
   }
@@ -127,15 +120,14 @@ char *lsh_read_line(void) {
   char *buffer = malloc(sizeof(char) * bufsize);
   int c;
 
-  if(!buffer) {
-    fprintf(stderr, "lsh: allocatino error\n");
-    exit(EXIT_FAILURE);
+  if (!buffer) {
+    lsh_error_msg();
   }
 
   while (1) {
     c = getchar();
 
-      if (c == EOF || c == '\n') {
+    if (c == EOF || c == '\n') {
       buffer[position] = '\0';
       return buffer;
     } else {
@@ -154,14 +146,12 @@ char *lsh_read_line(void) {
   }
 }
 
-
 int main() {
   lsh_loop();
   return EXIT_SUCCESS;
 }
 
-void lsh_loop(void)
-{
+void lsh_loop(void) {
   char *line;
   char **args;
   int status;
